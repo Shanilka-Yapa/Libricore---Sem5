@@ -1,14 +1,59 @@
-version: "3.8"
+version: '3.8'
+
 services:
-  frontend:
-    build: ./frontend
-    container_name: frontend_c
+  # Backend service
+  server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: node-app:latest
+    container_name: node-app-container
+    env_file: ./backend/.env
     ports:
-      - '3000:3000'
-  backend:
-    build: ./backend
-    container_name: backend_c
+      - "5000:5000"
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+    # Optional dev volume for hot reload
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # MongoDB service
+  mongo:
+    image: mongo:6.0
+    container_name: mongo-container
     ports:
-      - '4000:4000'
-    stdin_open: true
-    tty: true
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  # Frontend service
+  client:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: react-app:latest
+    container_name: react-app-container
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    networks:
+      - app-network
+    # Optional dev volume for hot reload
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+# Docker network
+networks:
+  app-network:
+    driver: bridge
+
+# Persistent volume for MongoDB
+volumes:
+  mongo-data:
