@@ -1,59 +1,53 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # Backend service
-  server:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: node-app:latest
-    container_name: node-app-container
-    env_file: ./backend/.env
-    ports:
-      - "5000:5000"
-    depends_on:
-      - mongo
-    networks:
-      - app-network
-    # Optional dev volume for hot reload
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-
-  # MongoDB service
-  mongo:
-    image: mongo:6.0
-    container_name: mongo-container
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - app-network
-
-  # Frontend service
-  client:
+  frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: react-app:latest
-    container_name: react-app-container
+    container_name: myapp-frontend
+    command: npm start
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
     ports:
       - "3000:3000"
-    depends_on:
-      - server
     networks:
-      - app-network
-    # Optional dev volume for hot reload
+      - my-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: myapp-backend
+    command: npm start
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    networks:
+      - my-network
+    depends_on:
+      - mongo
 
-# Docker network
-networks:
-  app-network:
-    driver: bridge
+  mongo:
+    image: mongo:6
+    container_name: myapp-mongo
+    ports:
+      - "27017:27017"           # Allows host (Compass) to connect via localhost
+    volumes:
+      - data-volume:/data/db    # Persists MongoDB data
+    networks:
+      - my-network
 
-# Persistent volume for MongoDB
 volumes:
-  mongo-data:
+  data-volume:
+
+networks:
+  my-network:
+    driver: bridge
